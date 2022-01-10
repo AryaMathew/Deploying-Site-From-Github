@@ -1,0 +1,37 @@
+---
+ - name: "Deploying the site contents from github"
+   hosts: all
+   become: true
+   vars:
+     github_url: https://github.com/AryaMathew/aws-elb-site.git
+   tasks:
+     - name: "Installing the packages"
+       yum:
+         name:
+           - httpd
+           - php
+           - git
+         state: present
+
+     - name: "cloning the git {{ github_url }}"
+       git:
+         repo:  "{{ github_url }}"
+         dest: /var/web/
+       register: git_status
+
+     - debug:
+         var:  git_status
+
+     - name: "Copying thr  Site contents to docRoot"
+       when: git_status.changed == true
+       copy:
+        src: /var/web/
+        dest: /var/www/html/
+        remote_src: true
+
+     - name: "Restarting/Enabling the Apache"
+       when: git_status.changed == true
+       service:
+        name: httpd
+        state: restarted
+        enabled: true
